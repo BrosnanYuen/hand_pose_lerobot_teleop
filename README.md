@@ -4,4 +4,6 @@ LeRobot teleoperation with your hand and a camera only!
 ![Demo GIF](robotarm1.gif)   ![Demo GIF2](robotarm2.gif)  
 ![Demo GIF3](robotarm3.gif)  
 
-
+```
+python3 ./hand_camera_teleop.py
+```
