@@ -146,6 +146,19 @@ def angle_between_vectors(v1, v2):
     
     return angle_deg
 
+downvec =  np.array([0.0, 1.0])
+
+def angle_between_vectors2(v1, v2):
+    angle_deg = angle_between_vectors(v1, v2)
+
+    down_angle = np.dot(v2, downvec)
+    if (down_angle > 0.0):
+        angle_deg = np.abs(angle_deg)
+    else:
+        angle_deg = -np.abs(angle_deg)
+    
+    return angle_deg
+
 def depth_estimate(hand_landmarks):
     diff1 = to_vec(hand_landmarks.landmark[4]) - to_vec(hand_landmarks.landmark[3])
     diff2 = to_vec(hand_landmarks.landmark[3]) - to_vec(hand_landmarks.landmark[2])
@@ -166,8 +179,13 @@ def frame_display():
     hand_pos = np.array([-10000.0, -10000.0])
     initial_hand_pos = np.array([-10000.0, -10000.0])
 
+    thumb = np.array([-10000.0, -10000.0])
+    initial_thumb = np.array([-10000.0, -10000.0])
+
     gripper_angle = -10000.0
     prev_gripper_angle = -10000.0
+
+    target_wy = -10000.0
     while not stop_event.is_set():
         if not frame_queue.empty():
             frame = frame_queue.get()
@@ -217,12 +235,23 @@ def frame_display():
                         gripper_angle = 0.9*gripper_angle + 0.1*angle_between_vectors(thumb, finger)
                     if prev_gripper_angle == -10000.0:
                         prev_gripper_angle = gripper_angle
+
+                    # Compute target_wy
+                    if initial_thumb[0] == -10000.0:
+                        initial_thumb = thumb
+
+                    if target_wy == -10000.0:
+                        target_wy = angle_between_vectors2(initial_thumb, thumb)
+                    else:
+                        target_wy = 0.9*target_wy + 0.1*angle_between_vectors2(initial_thumb, thumb)
+                    # Send Action
                     if not action_queue.full():
                         action = {
                             "target_x": hand_pos[0] - initial_hand_pos[0],
                             "target_y": hand_pos[1] - initial_hand_pos[1],
                             "target_z": hand_depth - initial_hand_depth,
                             "gripper_vel": gripper_angle - prev_gripper_angle,
+                            "target_wy": target_wy,
                         }
                         action_queue.put(action)
                         prev_gripper_angle = gripper_angle
@@ -257,6 +286,7 @@ def robot_process():
             camera_action["target_z"] = -action["target_y"]
             camera_action["target_y"] = -action["target_z"]
             camera_action["gripper_vel"] = action["gripper_vel"]*0.5
+            camera_action["target_wy"] = action["target_wy"]*0.01745
 
         # Phone -> EE pose -> Joints transition
         joint_action = phone_to_robot_joints_processor((camera_action, robot_obs))
