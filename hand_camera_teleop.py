@@ -166,8 +166,8 @@ def frame_display():
     hand_pos = np.array([-10000.0, -10000.0])
     initial_hand_pos = np.array([-10000.0, -10000.0])
 
-    angle = -10000.0
-    prev_angle = -10000.0
+    gripper_angle = -10000.0
+    prev_gripper_angle = -10000.0
     while not stop_event.is_set():
         if not frame_queue.empty():
             frame = frame_queue.get()
@@ -211,21 +211,21 @@ def frame_display():
                     thumb = to_vec(hand_landmarks.landmark[4]) - to_vec(hand_landmarks.landmark[0])
                     finger = to_vec(hand_landmarks.landmark[8]) - to_vec(hand_landmarks.landmark[0])
 
-                    if angle == -10000.0:
-                        angle = angle_between_vectors(thumb, finger)
+                    if gripper_angle == -10000.0:
+                        gripper_angle = angle_between_vectors(thumb, finger)
                     else:
-                        angle = 0.9*angle + 0.1*angle_between_vectors(thumb, finger)
-                    if prev_angle == -10000.0:
-                        prev_angle = angle
+                        gripper_angle = 0.9*gripper_angle + 0.1*angle_between_vectors(thumb, finger)
+                    if prev_gripper_angle == -10000.0:
+                        prev_gripper_angle = gripper_angle
                     if not action_queue.full():
                         action = {
                             "target_x": hand_pos[0] - initial_hand_pos[0],
                             "target_y": hand_pos[1] - initial_hand_pos[1],
                             "target_z": hand_depth - initial_hand_depth,
-                            "gripper_vel": angle - prev_angle,
+                            "gripper_vel": gripper_angle - prev_gripper_angle,
                         }
                         action_queue.put(action)
-                        prev_angle = angle
+                        prev_gripper_angle = gripper_angle
                     
             cv2.imshow('MediaPipe Hands - 3D Pose', image)
             if cv2.waitKey(5) & 0xFF == 27:
