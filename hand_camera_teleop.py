@@ -161,10 +161,10 @@ def depth_estimate(hand_landmarks):
 
 def frame_display():
     hand_depth = -10000.0
-    prev_hand_depth = -10000.0
+    initial_hand_depth = -10000.0
 
     hand_pos = np.array([-10000.0, -10000.0])
-    prev_hand_pos = np.array([-10000.0, -10000.0])
+    initial_hand_pos = np.array([-10000.0, -10000.0])
 
     angle = -10000.0
     prev_angle = -10000.0
@@ -188,23 +188,26 @@ def frame_display():
                         mp_drawing_styles.get_default_hand_landmarks_style(),
                         mp_drawing_styles.get_default_hand_connections_style()
                     )
+
+                    # Compute Z axis
                     if hand_depth == -10000.0:
                         hand_depth = depth_estimate(hand_landmarks)
                     else:
                         hand_depth = 0.9*hand_depth + 0.1*depth_estimate(hand_landmarks)
 
-                    if prev_hand_depth == -10000.0:
-                        prev_hand_depth = hand_depth
+                    if initial_hand_depth == -10000.0:
+                        initial_hand_depth = hand_depth
 
-
+                    # Compute X and Y axis
                     if hand_pos[0] == -10000.0:
                         hand_pos = to_vec(hand_landmarks.landmark[2])
                     else:
                         hand_pos = 0.9*hand_pos + 0.1*to_vec(hand_landmarks.landmark[2])
                     
-                    if prev_hand_pos[0] == -10000.0:
-                        prev_hand_pos = hand_pos
+                    if initial_hand_pos[0] == -10000.0:
+                        initial_hand_pos = hand_pos
 
+                    # Compute gripper angle
                     thumb = to_vec(hand_landmarks.landmark[4]) - to_vec(hand_landmarks.landmark[0])
                     finger = to_vec(hand_landmarks.landmark[8]) - to_vec(hand_landmarks.landmark[0])
 
@@ -216,9 +219,9 @@ def frame_display():
                         prev_angle = angle
                     if not action_queue.full():
                         action = {
-                            "target_x": hand_pos[0] - prev_hand_pos[0],
-                            "target_y": hand_pos[1] - prev_hand_pos[1],
-                            "target_z": hand_depth - prev_hand_depth,
+                            "target_x": hand_pos[0] - initial_hand_pos[0],
+                            "target_y": hand_pos[1] - initial_hand_pos[1],
+                            "target_z": hand_depth - initial_hand_depth,
                             "gripper_vel": angle - prev_angle,
                         }
                         action_queue.put(action)
